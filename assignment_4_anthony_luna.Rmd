@@ -57,7 +57,7 @@ lob_year_site_plot
 lob_size <- lob_raw %>% 
   filter(!is.na(size_mm)) %>% 
   uncount(weights = count) %>% 
-  filter(year==2018|year==2012) 
+  filter(year==2018|year==2012) ###### I think we need to fix this chunk. I looked at the lob size table and it wasn't returning any values with 2018 only ones with 2012.  Also think it would be good to label this lob_size_2018 and the next lob_size_2012
 
 ggplot(lob_size,aes(x=size_mm,fill=year))+
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
@@ -65,7 +65,7 @@ ggplot(lob_size,aes(x=size_mm,fill=year))+
   facet_wrap(~site,scales = "free")
 ```
 ```{r}
-lob_size <- lob_raw %>% 
+lob_size <- lob_raw %>%    ######## would consider renaming lob_size_2012
   filter(!is.na(size_mm)) %>% 
   uncount(weights = count) %>% 
   filter(year==2012) 
@@ -78,6 +78,49 @@ ggplot(lob_size,aes(x=size_mm,fill=year))+
 
 
 #### Results C: Compare mean lobster sizes at MPA vs. non-MPA status sites in 2012 and 2018
+
+```{r}
+### MPA = Naples and Isla Vista
+### nonMPA = Arroyo Quemado, Mohawk, Carpinteria
+
+# Create data frames for statistical analysis.
+
+# Mean size of lobsters in 2012
+
+lob_mean_size_2012 <- lob_raw %>% 
+  filter(year == 2012) %>%
+  filter(!is.na(size_mm)) %>% 
+  group_by(site) %>% 
+  summarize(
+    mean_size = mean(size_mm))
+
+# Mean size of lobsters in 2018
+
+lob_mean_size_2018 <- lob_raw %>% 
+  filter(year == 2018) %>%
+  filter(!is.na(size_mm)) %>% 
+  group_by(site) %>% 
+  summarize(
+    mean_size = mean(size_mm))
+
+# MPA and non MPA mean sizes for 2012
+mpa_mean_size_2012 <- lob_mean_size_2012 %>% 
+  filter(site %in% c("IVEE","NAPL" ))
+
+non_mpa_mean_size_2012 <- lob_mean_size_2012 %>% 
+  filter(site %in% c("AQUE", "CARP", "MOHK"))
+
+# MPA and non MPA mean sizes for 2012
+
+mpa_mean_size_2018 <- lob_mean_size_2018 %>% 
+  filter(site %in% c("IVEE","NAPL" ))
+
+non_mpa_mean_size_2018 <- lob_mean_size_2018 %>% 
+  filter(site %in% c("AQUE", "CARP", "MOHK"))
+```
+
+
+
 
 ### Summary
 
