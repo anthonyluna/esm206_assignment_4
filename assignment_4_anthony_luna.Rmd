@@ -26,16 +26,18 @@ library(here)
 
 ```{r}
 lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999") %>% 
-  clean_names()
+  clean_names() %>% 
+  uncount(weights = count) %>% 
+  mutate(cfgn_code = case_when(site %in% c("NAPL","IVEE")~"MPA",TRUE~"non-MPA"))
+
 
 lob_year_site <- lob_raw %>% 
-  group_by(year,site) %>% 
-  summarise(count = sum(count)) %>% 
-  mutate(cfgn_code = case_when(site %in% c("NAPL","IVEE")~"MPA",TRUE~"non-MPA"))
+  group_by(year,site, cfgn_code) %>% 
+  summarise(count = n()) 
 
 lob_year_site_plot <- ggplot(data=lob_year_site, aes(x=year,y=count))+
   geom_line(aes(color = site))+
-  facet_wrap(~cfgn_code)+
+  facet_wrap(~cfgn_code, nrow = 2)+
   labs(title = "Population of Lobsters over time",
     subtitle = "2012-2018",
     caption = "Observed lobster counts from 2012 to 2018 in 5 locations off the coast of Santa Barbara",
@@ -54,25 +56,22 @@ lob_year_site_plot
 #### Results B: Visually explore lobster size distribution shifts by comparing lobster sizes in 2012 and 2018
 
 ```{r}
-lob_size <- lob_raw %>% 
+lob_size_2018 <- lob_raw %>% 
   filter(!is.na(size_mm)) %>% 
-  uncount(weights = count) %>% 
-  filter(year==2018|year==2012) ###### I think we need to fix this chunk (I believe with %in%. I looked at the lob size table and it wasn't returning any values with 2018 only ones with 2012.  Also think it would be good to label this lob_size_2018 and the next lob_size_2012
+  filter(year==2018) 
 
-ggplot(lob_size,aes(x=size_mm,fill=year))+
+ggplot(lob_size_2018,aes(x=size_mm,fill=year))+
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
-    scale_fill_manual(values=c("#69b3a2", "#404080")) +
+   # scale_fill_manual(values=c("#69b3a2", "#404080")) +
   facet_wrap(~site,scales = "free")
 ```
 ```{r}
-lob_size <- lob_raw %>%    ######## would consider renaming lob_size_2012
+lob_size_2012 <- lob_raw %>%    ######## would consider renaming lob_size_2012
   filter(!is.na(size_mm)) %>% 
-  uncount(weights = count) %>% 
   filter(year==2012) 
 
-ggplot(lob_size,aes(x=size_mm,fill=year))+
+ggplot(lob_size_2012,aes(x=size_mm,fill=year))+
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
-   # scale_fill_manual(values=c("#69b3a2", "#404080")) +
   facet_wrap(~site)
 ```
 
@@ -86,24 +85,24 @@ ggplot(lob_size,aes(x=size_mm,fill=year))+
 
 mpa_size_2012 <- lob_raw %>% 
   filter(year == 2012) %>%
-  filter(site %in% c("IVEE","NAPL" )) %>% 
+  filter(cfgn_code == "MPA") %>% 
   filter(!is.na(size_mm)) 
 
 non_mpa_size_2012 <- lob_raw %>% 
   filter(year == 2012) %>%
-  filter(site %in% c("AQUE", "CARP", "MOHK")) %>% 
+  filter(cfgn_code == "non-MPA") %>% 
   filter(!is.na(size_mm)) 
 
 # Mean size of lobsters in 2018
 
 mpa_size_2018 <- lob_raw %>% 
   filter(year == 2018) %>%
-  filter(site %in% c("IVEE","NAPL" )) %>% 
+  filter(cfgn_code == "MPA" ) %>% 
   filter(!is.na(size_mm)) 
 
 non_mpa_size_2018 <- lob_raw %>% 
   filter(year == 2018) %>%
-  filter(site %in% c("AQUE", "CARP", "MOHK")) %>% 
+  filter(cfgn_code == "non-MPA") %>% 
   filter(!is.na(size_mm))
 
 ### Perform t-tests on data to determine if there is a significant difference between lobster sites in:
@@ -128,11 +127,31 @@ mpa_2012_vs_mpa_2018 <- t.test(
 non_mpa_2012_vs_non_mpa_2018 <- t.test(
   non_mpa_size_2012$size_mm, non_mpa_size_2018$size_mm)
 
-mpa_vs_non_2012
+#mpa_vs_non_2012
 
 
 ```
 
+```{r}
+### Create summary table with mean, standard deviation, and sample count
+
+final_summary_table <- lob_raw %>% 
+  filter(year %in% c(2012, 2018)) %>% 
+  group_by(cfgn_code,year) %>% 
+  summarize(
+    mean = mean(size_mm),
+    s_dev = sd(size_mm),
+    count = n())
+
+kableExtra::kable(final_summary_table, 
+                  caption = "Table 1: Lobster summary statistics",
+                  col.names = c("Area Type",
+                                "Year",
+                                "Mean (mm)",
+                                "Standard Deviation (\u00B1 mm)  ",
+                                "Count"))
+  
+```
 
 
 ### Summary
