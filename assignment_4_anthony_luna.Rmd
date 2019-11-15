@@ -114,17 +114,21 @@ lob_size_2012_test <- lob_size_2012 %>%
 lob_size_2018_test <- lob_size_2018 %>% 
   group_by(site)
 
-
-visuals <- cbind(lob_size_2012_test$site,lob_size_2012_test$size_mm,
-                 lob_size_2018_test$site,lob_size_2018_test$size_mm)
+ggplot() + # To overlay do not insert any data or aes into intial ggplot(). If you do it causes that to be applied to all following plots. In this instance since we are using multiple data frames  we need to map the aes per data frame.
+geom_violin(data = lob_size_2012_test, 
+            aes (x = site, y = size_mm, fill = site)) +
+geom_violin(data = lob_size_2018_test, 
+            aes (x = site, y = size_mm, fill = site),
+            alpha = 0.50,
+            fill = "grey") +
+  labs(title = "Comparison of Lobster size in 2012 vs 2018",
+       x = "Catch site",
+       y = "Size (mm)") +
+  theme(plot.title = element_text(hjust= 0.5),
+          plot.subtitle = element_text(hjust= 0.5))
   
-#ggplot(lob_size_2012_test, 
-    #   aes (x = site, y = size_mm, fill = site)) +
-  #geom_violin() +
-  #ggplot(lob_size_2018_test, (aes(x = site, y = size_mm, fill = site))) +
-  #geom_violin()
+  #####################  Change legend to show 2018 is grey, and 2012 is solid##############
 
-visuals$V1
 
 ```
 
