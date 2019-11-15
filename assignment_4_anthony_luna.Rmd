@@ -63,15 +63,17 @@ lob_size_2018 <- lob_raw %>%
 ggplot(lob_size_2018,aes(x=size_mm,fill=year))+
   geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
    # scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  facet_wrap(~site,scales = "free")
+  facet_wrap(~site)  # I think we should remove scales free. It makes the populations look comprable when they are magnitudes different
 ```
 ```{r}
-lob_size_2012 <- lob_raw %>%    ######## would consider renaming lob_size_2012
+lob_size_2012 <- lob_raw %>%    
   filter(!is.na(size_mm)) %>% 
   filter(year==2012) 
 
 ggplot(lob_size_2012,aes(x=size_mm,fill=year))+
-  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  geom_histogram( color="#e9ecef",
+                  alpha=0.6, 
+                  position = 'identity') +
   facet_wrap(~site)
 ```
 
@@ -127,7 +129,10 @@ mpa_2012_vs_mpa_2018 <- t.test(
 non_mpa_2012_vs_non_mpa_2018 <- t.test(
   non_mpa_size_2012$size_mm, non_mpa_size_2018$size_mm)
 
-#mpa_vs_non_2012
+mpa_vs_non_2012
+mpa_vs_non_2018
+mpa_2012_vs_mpa_2018
+non_mpa_2012_vs_non_mpa_2018
 
 
 ```
@@ -145,11 +150,11 @@ final_summary_table <- lob_raw %>%
 
 kableExtra::kable(final_summary_table, 
                   caption = "Table 1: Lobster summary statistics",
-                  col.names = c("Area Type",
-                                "Year",
-                                "Mean (mm)",
-                                "Standard Deviation (\u00B1 mm)  ",
-                                "Count"))
+                  col.names = c("area type",
+                                "year",
+                                "mean (mm)",
+                                "st dev (\u00B1 mm)  ",
+                                "count"))
   
 ```
 
