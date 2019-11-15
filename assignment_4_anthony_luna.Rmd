@@ -51,6 +51,33 @@ lob_year_site_plot <- ggplot(data=lob_year_site, aes(x=year,y=count))+
 lob_year_site_plot
 ```
 
+```{r}
+#Testing Spaghetti plot for Results A
+spaghetti <- lob_year_site %>% 
+  mutate( highlight=ifelse(cfgn_code=="MPA", "MPA", "Other")) %>% #ifelse processes a test (if this is true, set = to this, everything else is this)
+  ggplot(aes(x=year, y =count, group = site, color = highlight))+
+  geom_line() +
+ # scale_color_manual(values = c("#31B9CE", "darkgray")) +
+  #scale_size_manual(values = c(.2, 2.0))+
+  theme_minimal()
+
+spaghetti
+
+
+
+##### Or consider this one #####
+
+# Wasn't able to get it to look the way I wanted.  Wanted all of the sites to be on each graph with a single highlighted per facet swap
+
+tmp <- lob_year_site %>% 
+  mutate(site2 = site)
+tmp %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = tmp %>% dplyr::select(-site), aes(group=site2)) +
+  geom_line(aes(color=site)) +
+  facet_wrap(~site)
+```
+
 
 
 #### Results B: Visually explore lobster size distribution shifts by comparing lobster sizes in 2012 and 2018
@@ -68,13 +95,37 @@ ggplot(lob_size_2018,aes(x=size_mm,fill=year))+
 ```{r}
 lob_size_2012 <- lob_raw %>%    
   filter(!is.na(size_mm)) %>% 
-  filter(year==2012) 
+  filter(year==2012)
 
 ggplot(lob_size_2012,aes(x=size_mm,fill=year))+
   geom_histogram( color="#e9ecef",
                   alpha=0.6, 
                   position = 'identity') +
   facet_wrap(~site)
+```
+
+
+```{r}
+# Overlapping Violin plot testing for Results B.  Having difficulty overlapping two independent violin plots due to aes mapping so maybe make a vector with all necessary data from each plot and use that to supply data for one independent plot.
+
+lob_size_2012_test <- lob_size_2012 %>% 
+  group_by(site)
+
+lob_size_2018_test <- lob_size_2018 %>% 
+  group_by(site)
+
+
+visuals <- cbind(lob_size_2012_test$site,lob_size_2012_test$size_mm,
+                 lob_size_2018_test$site,lob_size_2018_test$size_mm)
+  
+#ggplot(lob_size_2012_test, 
+    #   aes (x = site, y = size_mm, fill = site)) +
+  #geom_violin() +
+  #ggplot(lob_size_2018_test, (aes(x = site, y = size_mm, fill = site))) +
+  #geom_violin()
+
+visuals$V1
+
 ```
 
 
