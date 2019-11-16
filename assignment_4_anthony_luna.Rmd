@@ -136,10 +136,10 @@ lob_size_2012 <- lob_raw %>%
 
 ggplot() + 
   geom_violin(data = lob_size_2012, 
-            aes (x = site, y = size_mm, fill = cfgn_code, alpha = as.factor(year))) +
+            aes (x = site, y = size_mm, fill = as.factor(year)), alpha = .5) +
   geom_violin(data = lob_size_2018, 
-            aes (x = site, y = size_mm, fill = cfgn_code, alpha = as.factor(year))) +
-  scale_alpha_manual(values = c(.7,.2))+
+            aes (x = site, y = size_mm, fill = as.factor(year)), alpha = .5) +
+  facet_grid(~cfgn_code, scales = "free", space = "free")+
 
   labs(title = "Comparison of Lobster size in 2012 vs 2018",
        x = "Catch site",
@@ -204,10 +204,10 @@ mpa_2012_vs_mpa_2018 <- t.test(
 non_mpa_2012_vs_non_mpa_2018 <- t.test(
   non_mpa_size_2012$size_mm, non_mpa_size_2018$size_mm)
 
-mpa_vs_non_2012
-mpa_vs_non_2018
-mpa_2012_vs_mpa_2018
-non_mpa_2012_vs_non_mpa_2018
+t_table <- map_df(list(mpa_vs_non_2012, mpa_vs_non_2018, mpa_2012_vs_mpa_2018, non_mpa_2012_vs_non_mpa_2018),tidy) 
+
+kable(t_table,
+      caption = "Table 1: Welch Two Sample t-test")
 
 
 ```
@@ -219,17 +219,19 @@ final_summary_table <- lob_raw %>%
   filter(year %in% c(2012, 2018)) %>% 
   group_by(cfgn_code,year) %>% 
   summarize(
-    mean = mean(size_mm),
-    s_dev = sd(size_mm),
+    mean = round(mean(size_mm),1),
+    s_dev = round(sd(size_mm),1),
     count = n())
 
-kableExtra::kable(final_summary_table, 
-                  caption = "Table 1: Lobster summary statistics",
-                  col.names = c("area type",
-                                "year",
-                                "mean (mm)",
-                                "st dev (\u00B1 mm)  ",
-                                "count"))
+kable(final_summary_table[2:5], 
+        caption = "Table 1: Lobster summary statistics",
+        col.names = c("Year",
+                      "Mean (mm)",
+                      "\u03C3 (\u00B1 mm)  ",
+                      "Count")) %>% 
+  kable_styling("striped",full_width = F) %>% 
+  pack_rows("MPA Site", 1,2) %>% 
+  pack_rows("Non-MPA Site",3,4)
   
 ```
 
