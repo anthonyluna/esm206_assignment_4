@@ -22,7 +22,7 @@ library(here)
 
 ### Results
 
-#### Results A: Visually Explore changes in annual lobster abundance (counts) by site 
+#### Results A: Visually Explore changes in annual lobster abundance (counts) by site {.tabset}
 
 ```{r}
 lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999") %>% 
@@ -37,7 +37,6 @@ lob_year_site <- lob_raw %>%
 
 lob_year_site_plot <- ggplot(data=lob_year_site, aes(x=year,y=count))+
   geom_line(aes(color = site))+
-  facet_wrap(~cfgn_code, nrow = 2)+
   labs(title = "Population of Lobsters over time",
     subtitle = "2012-2018",
     caption = "Observed lobster counts from 2012 to 2018 in 5 locations off the coast of Santa Barbara",
@@ -50,6 +49,25 @@ lob_year_site_plot <- ggplot(data=lob_year_site, aes(x=year,y=count))+
           plot.subtitle = element_text(hjust= 0.5))
 lob_year_site_plot
 ```
+
+These tabs show each of the regions
+
+##### MPAAAAAAA
+
+```{r}
+lob_year_site_plot
+```
+ljsdlfkjsdflkjsdf
+
+##### Isla Vista
+
+```{r}
+lob_year_site_plot
+```
+
+
+This is the isla vista plot blah blah
+
 
 ```{r}
 #Testing Spaghetti plot for Results A
@@ -70,12 +88,13 @@ spaghetti
 # Wasn't able to get it to look the way I wanted.  Wanted all of the sites to be on each graph with a single highlighted per facet swap
 
 tmp <- lob_year_site %>% 
-  mutate(site2 = site)
+  mutate(site2 = as.factor(site))
 tmp %>% 
   ggplot(aes(x = year, y = count)) +
-  geom_line(data = tmp %>% dplyr::select(-site), aes(group=site2)) +
-  geom_line(aes(color=site)) +
-  facet_wrap(~site)
+  geom_line(data = tmp %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(aes(color=site2),size=1.2) +
+  facet_wrap(~site2)+
+  theme(legend.position = "none")
 ```
 
 
