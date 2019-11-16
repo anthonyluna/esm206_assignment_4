@@ -14,6 +14,8 @@ library(janitor)
 library(kableExtra)
 library(scales)
 library(here)
+library(broom)
+library(purrr)
 ```
 
 ### Introduction
@@ -25,77 +27,95 @@ library(here)
 #### Results A: Visually Explore changes in annual lobster abundance (counts) by site {.tabset}
 
 ```{r}
+# Import of raw data, and cleaning for use which includes uncounting
+# the data set, cleaning the names, and adding a column for California
+# fish and game network (cfgn) marine status.
+
 lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999") %>% 
   clean_names() %>% 
   uncount(weights = count) %>% 
   mutate(cfgn_code = case_when(site %in% c("NAPL","IVEE")~"MPA",TRUE~"non-MPA"))
 
+# Creating a dataframe which summarizes the lobster counts by year, 
+# site, and cfgn_code.
 
 lob_year_site <- lob_raw %>% 
   group_by(year,site, cfgn_code) %>% 
-  summarise(count = n()) 
+  summarise(count = n()) %>% 
+  mutate(site2 = as.factor(site))
 
-lob_year_site_plot <- ggplot(data=lob_year_site, aes(x=year,y=count))+
-  geom_line(aes(color = site))+
-  labs(title = "Population of Lobsters over time",
-    subtitle = "2012-2018",
-    caption = "Observed lobster counts from 2012 to 2018 in 5 locations off the coast of Santa Barbara",
-    x = "Year",
-    y = "Count of Lobsters",
-    col = "Site") + 
-    theme_minimal() +  
-    # This centers our title and subtitle  
-    theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5))
-lob_year_site_plot
 ```
 
 These tabs show each of the regions
 
-##### MPAAAAAAA
+##### Arroyo Quemado 
+
+**MPA Designation: ** Not a designated MPA site.
+
 
 ```{r}
-lob_year_site_plot
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "AQUE"), color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
 ```
-ljsdlfkjsdflkjsdf
+
+##### Carpinteria
+
+**MPA Designation**: Not a designated MPA site.
+
+
+```{r}
+ lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "CARP"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+```
 
 ##### Isla Vista
 
-```{r}
-lob_year_site_plot
-```
-
-
-This is the isla vista plot blah blah
-
+**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
 
 ```{r}
-#Testing Spaghetti plot for Results A
-spaghetti <- lob_year_site %>% 
-  mutate( highlight=ifelse(cfgn_code=="MPA", "MPA", "Other")) %>% #ifelse processes a test (if this is true, set = to this, everything else is this)
-  ggplot(aes(x=year, y =count, group = site, color = highlight))+
-  geom_line() +
- # scale_color_manual(values = c("#31B9CE", "darkgray")) +
-  #scale_size_manual(values = c(.2, 2.0))+
-  theme_minimal()
-
-spaghetti
-
-
-
-##### Or consider this one #####
-
-# Wasn't able to get it to look the way I wanted.  Wanted all of the sites to be on each graph with a single highlighted per facet swap
-
-tmp <- lob_year_site %>% 
-  mutate(site2 = as.factor(site))
-tmp %>% 
+lob_year_site %>% 
   ggplot(aes(x = year, y = count)) +
-  geom_line(data = tmp %>% dplyr::select(-site2),color="grey", aes(group=site)) +
-  geom_line(aes(color=site2),size=1.2) +
-  facet_wrap(~site2)+
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "IVEE"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
   theme(legend.position = "none")
 ```
+
+##### Mohawk
+
+**MPA Designation**: Not a designated MPA site.
+
+```{r}
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "MOHK"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
+##### Naples
+
+**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
+
+```{r}
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "NAPL"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
 
 
 
@@ -105,41 +125,22 @@ tmp %>%
 lob_size_2018 <- lob_raw %>% 
   filter(!is.na(size_mm)) %>% 
   filter(year==2018) 
-
-ggplot(lob_size_2018,aes(x=size_mm,fill=year))+
-  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
-   # scale_fill_manual(values=c("#69b3a2", "#404080")) +
-  facet_wrap(~site)  # I think we should remove scales free. It makes the populations look comprable when they are magnitudes different
-```
-```{r}
 lob_size_2012 <- lob_raw %>%    
   filter(!is.na(size_mm)) %>% 
   filter(year==2012)
 
-ggplot(lob_size_2012,aes(x=size_mm,fill=year))+
-  geom_histogram( color="#e9ecef",
-                  alpha=0.6, 
-                  position = 'identity') +
-  facet_wrap(~site)
-```
+# To overlay do not insert any data or aes into intial ggplot(). 
+# If you do it causes that to be applied to all following plots. 
+# In this instance since we are using multiple data frames  we 
+# need to map the aes per data frame.
 
+ggplot() + 
+  geom_violin(data = lob_size_2012, 
+            aes (x = site, y = size_mm, fill = cfgn_code, alpha = as.factor(year))) +
+  geom_violin(data = lob_size_2018, 
+            aes (x = site, y = size_mm, fill = cfgn_code, alpha = as.factor(year))) +
+  scale_alpha_manual(values = c(.7,.2))+
 
-```{r}
-# Overlapping Violin plot testing for Results B.  Having difficulty overlapping two independent violin plots due to aes mapping so maybe make a vector with all necessary data from each plot and use that to supply data for one independent plot.
-
-lob_size_2012_test <- lob_size_2012 %>% 
-  group_by(site)
-
-lob_size_2018_test <- lob_size_2018 %>% 
-  group_by(site)
-
-ggplot() + # To overlay do not insert any data or aes into intial ggplot(). If you do it causes that to be applied to all following plots. In this instance since we are using multiple data frames  we need to map the aes per data frame.
-geom_violin(data = lob_size_2012_test, 
-            aes (x = site, y = size_mm, fill = site)) +
-geom_violin(data = lob_size_2018_test, 
-            aes (x = site, y = size_mm, fill = site),
-            alpha = 0.50,
-            fill = "grey") +
   labs(title = "Comparison of Lobster size in 2012 vs 2018",
        x = "Catch site",
        y = "Size (mm)") +
