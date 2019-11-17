@@ -34,8 +34,13 @@ library(purrr)
 lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999") %>% 
   clean_names() %>% 
   uncount(weights = count) %>% 
-  mutate(cfgn_code = case_when(site %in% c("NAPL","IVEE")~"MPA",TRUE~"non-MPA"))
-
+  mutate(cfgn_code = case_when(site %in% c("NAPL","IVEE")~"MPA Site",TRUE~"non-MPA Site")) %>% 
+  mutate(site_name = case_when(
+    site=="NAPL"~"Naples",
+    site=="IVEE"~"Isla Vista",
+    site=="MOHK"~"Mohawk",
+    site=="AQUE"~"Arroyo Quemado",
+    site=="CARP"~"Carpinteria"))
 # Creating a dataframe which summarizes the lobster counts by year, 
 # site, and cfgn_code.
 
@@ -44,9 +49,36 @@ lob_year_site <- lob_raw %>%
   summarise(count = n()) %>% 
   mutate(site2 = as.factor(site))
 
+
 ```
 
 These tabs show each of the regions
+
+##### Isla Vista
+
+**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
+
+```{r}
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "IVEE"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+```
+
+##### Naples
+
+**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
+
+```{r}
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "NAPL"),color="#CC60A8",size=1.2) +
+  theme_minimal()+
+  theme(legend.position = "none")
+```
 
 ##### Arroyo Quemado 
 
@@ -77,18 +109,6 @@ lob_year_site %>%
   theme(legend.position = "none")
 ```
 
-##### Isla Vista
-
-**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
-
-```{r}
-lob_year_site %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
-  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "IVEE"),color="#CC60A8",size=1.2) +
-  theme_minimal()+
-  theme(legend.position = "none")
-```
 
 ##### Mohawk
 
@@ -103,18 +123,7 @@ lob_year_site %>%
   theme(legend.position = "none")
 ```
 
-##### Naples
 
-**MPA Designation**: Desginated a MPA site in January 1^st^, 2012
-
-```{r}
-lob_year_site %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site %>% dplyr::select(-site2),color="grey", aes(group=site)) +
-  geom_line(data = lob_year_site %>% dplyr::select(-site) %>% filter(site2 == "NAPL"),color="#CC60A8",size=1.2) +
-  theme_minimal()+
-  theme(legend.position = "none")
-```
 
 
 
@@ -133,19 +142,26 @@ lob_size_2012 <- lob_raw %>%
 # If you do it causes that to be applied to all following plots. 
 # In this instance since we are using multiple data frames  we 
 # need to map the aes per data frame.
-
+min_size <- data.frame(size_mm=109.55, site_name = 0.7,lab = str_wrap("Minimum Catch Size",width = 10), cfgn_code = factor("MPA Site",levels = c("MPA Site","Non-MPA Site")))
 ggplot() + 
   geom_violin(data = lob_size_2012, 
-            aes (x = site, y = size_mm, fill = as.factor(year)), alpha = .5) +
+            aes (x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
   geom_violin(data = lob_size_2018, 
-            aes (x = site, y = size_mm, fill = as.factor(year)), alpha = .5) +
+            aes (x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
+   geom_hline(yintercept = 82.55) +
   facet_grid(~cfgn_code, scales = "free", space = "free")+
-
   labs(title = "Comparison of Lobster size in 2012 vs 2018",
        x = "Catch site",
-       y = "Size (mm)") +
+       y = "") +
+    scale_y_continuous(breaks = c(82.55),labels = c(str_wrap("Miniumum Catch Size (82.55mm)",width = 10)))+
+  guides(fill=guide_legend(title="Year"))+
+  
   theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5))
+          plot.subtitle = element_text(hjust= 0.5),
+        panel.grid.major.x = element_line(linetype = "blank"),
+        strip.background = element_rect(fill = "grey80"),
+        
+        strip.text = element_text(face="bold"))
   
   #####################  Change legend to show 2018 is grey, and 2012 is solid##############
 
@@ -162,24 +178,24 @@ ggplot() +
 
 mpa_size_2012 <- lob_raw %>% 
   filter(year == 2012) %>%
-  filter(cfgn_code == "MPA") %>% 
+  filter(cfgn_code == "MPA Site") %>% 
   filter(!is.na(size_mm)) 
 
 non_mpa_size_2012 <- lob_raw %>% 
   filter(year == 2012) %>%
-  filter(cfgn_code == "non-MPA") %>% 
+  filter(cfgn_code == "non-MPA Site") %>% 
   filter(!is.na(size_mm)) 
 
 # Mean size of lobsters in 2018
 
 mpa_size_2018 <- lob_raw %>% 
   filter(year == 2018) %>%
-  filter(cfgn_code == "MPA" ) %>% 
+  filter(cfgn_code == "MPA Site" ) %>% 
   filter(!is.na(size_mm)) 
 
 non_mpa_size_2018 <- lob_raw %>% 
   filter(year == 2018) %>%
-  filter(cfgn_code == "non-MPA") %>% 
+  filter(cfgn_code == "non-MPA Site") %>% 
   filter(!is.na(size_mm))
 
 ### Perform t-tests on data to determine if there is a significant difference between lobster sites in:
@@ -204,7 +220,21 @@ mpa_2012_vs_mpa_2018 <- t.test(
 non_mpa_2012_vs_non_mpa_2018 <- t.test(
   non_mpa_size_2012$size_mm, non_mpa_size_2018$size_mm)
 
-t_table <- map_df(list(mpa_vs_non_2012, mpa_vs_non_2018, mpa_2012_vs_mpa_2018, non_mpa_2012_vs_non_mpa_2018),tidy) 
+t_table <- map_df(list(mpa_vs_non_2012, mpa_vs_non_2018, mpa_2012_vs_mpa_2018, non_mpa_2012_vs_non_mpa_2018),tidy) %>% 
+  mutate(percent_difference = abs(estimate1-estimate2)/((estimate1+estimate2)/2)) %>% 
+  mutate(total_difference = abs(estimate1-estimate2)) 
+
+names(t_table) <-  c("estimate",
+          "mean_1",
+          "mean_2", 
+          "t_value",
+          "p_value",
+          "degrees_freedom",
+          "conf_low",
+          "conf_high",
+          "method",
+          "alternative",
+          "percent_difference", "total_difference")
 
 kable(t_table,
       caption = "Table 1: Welch Two Sample t-test")
@@ -215,7 +245,7 @@ kable(t_table,
 ```{r}
 ### Create summary table with mean, standard deviation, and sample count
 
-final_summary_table <- lob_raw %>% 
+final_summary_table_MPA <- lob_raw %>% 
   filter(year %in% c(2012, 2018)) %>% 
   group_by(cfgn_code,year) %>% 
   summarize(
@@ -223,19 +253,27 @@ final_summary_table <- lob_raw %>%
     s_dev = round(sd(size_mm),1),
     count = n())
 
-kable(final_summary_table[2:5], 
-        caption = "Table 1: Lobster summary statistics",
-        col.names = c("Year",
+kable(final_summary_table_MPA, 
+        caption = "Table 1: Lobster summary statistics MPA comparisons",
+        col.names = c("MPA Desgination",
+                      "Year",
                       "Mean (mm)",
                       "\u03C3 (\u00B1 mm)  ",
                       "Count")) %>% 
-  kable_styling("striped",full_width = F) %>% 
-  pack_rows("MPA Site", 1,2) %>% 
-  pack_rows("Non-MPA Site",3,4)
-  
+  kable_styling("striped",full_width = F) 
 ```
 
 
 ### Summary
 
 ### References
+
+[1] Lobster, Spiny. Minimum Size and Verification, 14 CA ADC § 121.5 (2017).
+
+
+
+
+
+
+
+
