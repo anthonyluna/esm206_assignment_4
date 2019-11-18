@@ -20,25 +20,27 @@ library(purrr)
 
 ### Introduction
 
-On, January 1st, 2012 the California Fish and Game Network established Marine Protected Areas (MPA) {include something about legislation and designation levels} in the waters off Isla Vista and Naples, California. This came as an effort to better understand factors such as abundance, size, and fishing pressure on the California spiny lobster as well as natural kelp forest community dynamics and the affects MPA’s have on them{CITATION OF ABSTRACT}. Previous studies suggested that small isolated marine protected areas are effective at increasing abundance and size of *P.interruptus* {CITATION}. Using data collected from five sites along the Santa Barbara coastline, including the two Marine Protected Areas mentioned above, by the Santa Barbara Coastal Long Term Ecological Research program (SBC LTR), we explore lobster population and size changes over six years in an attempt to show MPA effectiveness .{NEED CITATION ABSTRACT}.
+The Marine Managed Areas Improvement Act of 1999 tasked the California Department of Fish and Wildlife (CDFW) to establish a process to designate Marine Protected Areas (MPA) with the goal of protecting sensitive marine ecosystems. On, January 1st, 2012 the coast off of Isla Vista and Naples Point in Santa Barbara County were designated as MPAs (CDFW 2012). Previous studies suggested that marine protected areas are effective at increasing abundance and size of *P.interruptus* (Parnell P. E., et al. 2005), therefore in the interest of quantifying MPA designation impacts in Santa Barbara County, the Santa Barbara Coastal Long Term Ecological Research program (SBC LTR) began conducting annual counts and size measurements of the California spiny lobster (Reed D. 2019). Using collected data, lobster population and size changes over six years were explored. Abundance of lobsters at each site are explored over time, with qualitative information included regarding the individual MPA site regulations. Size distributions are compared over time for each site with the minimum catch size used as a benchmark for comparison between MPA an non-MPA. Finally, statistical analysis is provided to describe the differences in means between the varying populations. 
+
 ```{r, out.width = "400px", fig.cap="**Figure 1:** *Panulirus interruptus* in its natural habitat. Credit: [Wikipedia, Stemonitis - Own work](https://commons.wikimedia.org/w/index.php?curid=14499898)",fig.align='center'}
 knitr::include_graphics("lobster.jpg")
 ```
 
 
 
+
 ### Data and Methods
 
-Data for *P. interruptus* size and abondance was collected between 2012 and 2018. This data was collected by the 
-Data for Swedish Griffin abundance and location from 1984 - 2019 were collected and provided by the Fantastic Beasts Research Team. Griffin abundance (individuals) is estimated from annual aerial counts. Griffin location (latitude, longitude) is uploaded daily from GPS-enabled collars, and used to estimate range areas (km2). For more information on collection methods and spatial information, see metadata. Habitat shifts were based on aerial observation and GPS locations, and were binned for this report as “Grassland”, “Forest” or “Exposed rock”. Mean griffin range area (km2) was compared for pre-dragon (1984 - 2004) and post-dragon (2005 - 2019) periods by two-sample t-tests (α = 0.05 throughout). Trends in Griffin abundance were compared before and after dragon reintroduction by linear regression. All analyses and figures were prepared using R software version 3.6.1{DATA AND METHODS INCLUDE TIME SERIES PLOT FOR LOBSTER ABUNDANCE, A VIOLIN PLOT TO SEE DISTRIBUTION OF SIZES OVER TIME, AND TWO SIDED WELCH T-TEST}
+Collection of size and abundance data for *P. interruptus* began in 2012 and is currently ongoing effort conducted by the Santa Barbara Coastal Long Term Ecological Research program. Data available for this report is from 2012 to 2018, and includes samples taken across 5 unique sites, 2 of which (Isla Vista and Naples) are MPAs. For more information on the collection protocols, see the detailed metadata (Reed D. 2019). A time series plot is provided to visually explore lobster counts by location over time (2012-2018) and differences between varying years are used to describe the variation in lobster count changes over time. A violin plot is used to compare the change of size distributions (mm) for each site from 2012 to 2018. A two sample t-test (Welch's t-test, $\alpha = 0.05$ throughout) is used to describe the differences between mean sizes (mm) between MPA and Non-MPA sites from 2012 to 2018. All analyses and figures were prepared using R software version 3.6.1.
 
 ### Results
 
 #### Results A: Visually Explore changes in annual lobster abundance (counts) by site {.tabset}
 ```{r}
 # Import of raw data, and cleaning for use which includes uncounting
-# the data set, cleaning the names, and adding a column for California
-# fish and game network (cfgn) marine status.
+# the data set, cleaning the names, adding a column for California
+# fish and game network (cfgn) marine status, and add a full site_name
+# for use in visualizations.
 
 lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999") %>% 
   clean_names() %>% 
@@ -50,8 +52,10 @@ lob_raw <- read_csv(here("data","lobster_abundance_sbc_lter.csv"), na = "-99999"
     site=="MOHK"~"Mohawk",
     site=="AQUE"~"Arroyo Quemado",
     site=="CARP"~"Carpinteria"))
+
 # Creating a dataframe which summarizes the lobster counts by year, 
-# site, and cfgn_code.
+# site, and cfgn_code. site2 is created to be used with line graph 
+# visualization. Data is arranged by site and year.
 
 lob_year_site <- lob_raw %>% mutate(site2 = site)%>% 
   group_by(site,site2,year, cfgn_code) %>% 
@@ -61,11 +65,18 @@ lob_year_site <- lob_raw %>% mutate(site2 = site)%>%
 
 
 ```{r}
+
+# Create a vector for each site which has the count data
+
 count_IVEE <-lob_year_site%>% filter(site=="IVEE") %>%  pull(count) 
 count_AQUE <-lob_year_site%>% filter(site=="AQUE") %>%  pull(count) 
 count_MOHK <-lob_year_site%>% filter(site=="MOHK") %>%  pull(count) 
 count_CARP <-lob_year_site%>% filter(site=="CARP") %>%  pull(count) 
 count_NAPL <-lob_year_site%>% filter(site=="NAPL") %>%  pull(count) 
+
+# Assign names to each vector based on the unique years available. 
+# The unique function outputs the years such that they are in the 
+# same order as specified in the arrange function which made lob_year_site.
 
 names(count_IVEE) <- c(unique(lob_year_site$year))
 names(count_AQUE) <- c(unique(lob_year_site$year))
@@ -73,54 +84,173 @@ names(count_MOHK) <- c(unique(lob_year_site$year))
 names(count_CARP) <- c(unique(lob_year_site$year))
 names(count_NAPL) <- c(unique(lob_year_site$year))
 
+# Create a matrix for each site which has the differences between
+# each year. 
+
 diff_IVEE <- outer(count_IVEE,count_IVEE,'-')
 diff_AQUE <- outer(count_AQUE,count_AQUE,'-')
 diff_MOHK <- outer(count_MOHK,count_MOHK,'-')
 diff_CARP <- outer(count_CARP,count_CARP,'-')
 diff_NAPL <- outer(count_NAPL,count_NAPL,'-')
-
-
-  
 ```
-Change in counts between 2012 and 2018 shows greatest population increases in the Marine Protected Areas.  IV and Naples increased by `r diff_IVEE["2018","2012"]` and `r diff_NAPL["2018","2012"]` lobsters respectively while Arroyo, Carp, and Mohawk increased by `r diff_AQUE["2018","2012"]`, `r diff_CARP["2018","2012"]`, `r diff_MOHK["2018","2012"]`. However, comparing population changes between different years provides very different outcomes. For example, the differences the  More years of study would be required to understand the long term effects of abundance in MPAs. Trending the year to year changes, the Marine Protected Areas had population increases every year except 2015 for IV and Naples and 2016 for Naples (9 of 12 increased 75%).  In comparison, the non Marine Protected Areas increased 8 of their combined 18 years(44%). An interesting aspect is the comparison of Isla Vista and Carpinteria between 2017 and 2018. Fishing pressure is potentially an explaination of the drop in population in Carpinteria compared to Isla Vista. 
+Change in counts between 2012 and 2018 shows greatest population increases in the Marine Protected Areas.  Isla Vista and Naples increased by `r diff_IVEE["2018","2012"]` and `r diff_NAPL["2018","2012"]` lobsters respectively while Carpinteria, Mohawk, and Arroyo Quemado increased by `r diff_CARP["2018","2012"]`, `r diff_MOHK["2018","2012"]`, `r diff_AQUE["2018","2012"]`. Comparing the differences from 2012 to 2017, Carpinteria has a larger increase (`r diff_CARP["2017","2012"]`) in comparison to both Isla Vista (`r diff_IVEE["2017","2012"]`) and Naples (`r diff_NAPL["2017","2012"]`), however Carpinteria has a substatial drop between 2017 and 2018 (`r diff_CARP["2018","2017"]`) which may be attributed to its unproteced status. 
 
-These tabs show each of the regions
+When looking at abundance changes from year to year, the Marine Protected Areas had population increases every year except 2015 for IV and Naples and 2016 for Naples (9 of 12 increased 75%).  In comparison, the non Marine Protected Areas increased 8 of their combined 18 years(44%). 
+
+When comparing the two MPA sites, Isla Vista and Naples, Naples has significantly lower abundance throughout this time period. This could be attributed to the additional regulatory carveouts for Naples which allow for recreational spearfishing, commercial kelp harvesting, and indigenous Chumas exemption (CDFW, 2012). More research would be required to understand how these carveouts impact the efficacy of MPA designation for preserving lobster abundance.
 
 ##### Isla Vista
 
 
-```{r}
+```{r, fig.align="center"}
+# Create a line graph of the count data by year, with Isla Vista data
+# highlighted in purple. Note that the Caption is put in text below the graph
+# in plain markdown to avoid plot size changes.
 lob_year_site %>% 
   ggplot(aes(x = year, y = count)) +
   geom_line(data = lob_year_site , color="grey", aes(group=site)) +
+  
+  # Overlay a second line with a dataframe which is filtered to only include the
+  # isla vista data.
   geom_line(data = lob_year_site %>% filter(site2 == "IVEE"),color="#CC60A8",size=1.2) +
+  
+  # Labeling and other aesthetics
   labs(title = "Isla Vista Lobster Abundance",
-    subtitle = "2012-2018",
+    subtitle = "",
     caption = "",
     x = "Year",
     y = "Count",
     col = "") + 
     theme_minimal() +  
-    # This centers our title and subtitle  
     theme(plot.title = element_text(hjust= 0.5),
           plot.subtitle = element_text(hjust= 0.5),
-          legend.position = "none")
+          legend.position = "none",
+          plot.caption = element_text(hjust =0.5))
 ```
+**Figure 1.1**: Isla Vista was desginated a MPA site in January 1st, 2012. Specific designation is State Marine Conservation Area with the individual MPA regulation allowing ecosystem distrubance in the case of the "operation and maintenance of artificial structures inside the conservation area" (CDFW, 2012). This site has the highest change in lobster abundance from 2012 to 2018 (`r diff_IVEE["2018","2012"]`).
 
-**MPA Designation**: Desginated a MPA site in January 1^st^, 2012. Specific designation is State Marine Conservation Area with the individual MPA regulation allowing ecosystem distrubance in the case of the "operation and maintenance of artificial structures inside the conservation area" (CDFW, 2012) 
 
 <hr>
 
 ##### Naples
 
 
-```{r}
+```{r, fig.align="center"}
+# Create a line graph of the count data by year, with Naples data
+# highlighted in purple. Note that the Caption is put in text below the graph
+# in plain markdown to avoid plot size changes.
 lob_year_site %>% 
   ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site,
-            color="grey", aes(group=site)) +
+  geom_line(data = lob_year_site , color="grey", aes(group=site)) +
+  
+  # Overlay a second line with a dataframe which is filtered to only include the
+  # Naples data.
   geom_line(data = lob_year_site %>% filter(site2 == "NAPL"),color="#CC60A8",size=1.2) +
+  
+  # Labeling and other aesthetics
   labs(title = "Naples Lobster Abundance",
+    subtitle = "",
+    caption = "",
+    x = "Year",
+    y = "Count",
+    col = "") + 
+    theme_minimal() + 
+    theme(plot.title = element_text(hjust= 0.5),
+          plot.subtitle = element_text(hjust= 0.5),
+          legend.position = "none",
+          plot.caption = element_text(hjust =0.5))
+```
+
+**Figure 1.2**: Naples was desginated a MPA site in January 1st, 2012. Specific designation is State Marine Conservation Area with the individual MPA regulation allowing ecosystem distrubance in the case of "recreational take by spearfishing of white seabass and pelagic finfish", "commercial take of giant kelp (*Macrocystis pyrifera*) by hand harvest or by mechanical harvest", or the "operation and maintenance of artificial structures inside the conservation area". In addition, the Santa Ynez Band of Chumas Indians are "exempt from the area and take regulations found in subsection 632(b)(98) and shall comply with all other existing regulations and statutes" (CDFW, 2012). This site has the second highest change in lobster abundance from 2012 to 2018 (`r diff_NAPL["2018","2012"]`).
+ 
+<hr>
+
+
+
+##### Carpinteria
+
+
+
+```{r, fig.align="center"}
+# Create a line graph of the count data by year, with Carpinteria data
+# highlighted in purple. Note that the Caption is put in text below the graph
+# in plain markdown to avoid plot size changes.
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site , color="grey", aes(group=site)) +
+  
+  # Overlay a second line with a dataframe which is filtered to only include the
+  # Carpinteria data.
+  geom_line(data = lob_year_site %>% filter(site2 == "CARP"),color="#CC60A8",size=1.2) +
+  
+  # Labeling and other Aesthetics
+  labs(title = "Carpinteria Lobster Abundance",
+    subtitle = "",
+    caption = "",
+    x = "Year",
+    y = "Count",
+    col = "") + 
+    theme_minimal() +  
+    theme(plot.title = element_text(hjust= 0.5),
+          plot.subtitle = element_text(hjust= 0.5),
+          legend.position = "none",
+          plot.caption = element_text(hjust =0.5))
+```
+
+**Figure 1.4**: Carpinteria is not a designated MPA site. This site has the third lowest change in lobster abundance from 2012 to 2018 (`r diff_CARP["2012","2018"]`).
+
+<hr>
+
+##### Mohawk
+
+```{r, fig.align="center"}
+# Create a line graph of the count data by year, with Mohawk data
+# highlighted in purple. Note that the Caption is put in text below the graph
+# in plain markdown to avoid plot size changes.
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site , color="grey", aes(group=site)) +
+  
+  # Overlay a second line with a dataframe which is filtered to only include the
+  # Mohawk data.
+  geom_line(data = lob_year_site  %>% filter(site2 == "MOHK"),color="#CC60A8",size=1.2) +
+  
+  # Labeling and other Aesthetics
+  labs(title = "Mohawk Lobster Abundance",
+    subtitle = "",
+    caption = "",
+    x = "Year",
+    y = "Count",
+    col = "") + 
+    theme_minimal() +  
+    theme(plot.title = element_text(hjust= 0.5),
+          plot.subtitle = element_text(hjust= 0.5),
+          legend.position = "none",
+          plot.caption = element_text(hjust =0.5))
+```
+
+**Figure 1.5**: Mohawk is not a designated MPA site. This site has the second lowest change in lobster abundance from 2012 to 2018 (`r diff_MOHK["2018","2012"]`).
+
+<hr>
+
+##### Arroyo Quemado 
+
+
+
+```{r, fig.align="center"}
+# Create a line graph of the count data by year, with Mohawk data
+# highlighted in purple. Note that the Caption is put in text below the graph
+# in plain markdown to avoid plot size changes.
+lob_year_site %>% 
+  ggplot(aes(x = year, y = count)) +
+  geom_line(data = lob_year_site , color="grey", aes(group=site)) +
+  
+  # Overlay a second line with a dataframe which is filtered to only include the
+  # Mohawk data.
+  geom_line(data = lob_year_site  %>% filter(site2 == "AQUE"), color="#CC60A8",size=1.2) +
+  
+  # Labeling and other Aesthetics
+  labs(title = "Arroyo Quemado Lobster Abundance",
     subtitle = "",
     caption = "",
     x = "Year",
@@ -130,88 +260,12 @@ lob_year_site %>%
     # This centers our title and subtitle  
     theme(plot.title = element_text(hjust= 0.5),
           plot.subtitle = element_text(hjust= 0.5),
-          legend.position = "none")
-```
-
-**MPA Designation**: Desginated a MPA site in January 1^st^, 2012. Specific designation is State Marine Conservation Area with the individual MPA regulation allowing ecosystem distrubance in the case of "recreational take by spearfishing of white seabass and pelagic finfish", "commercial take of giant kelp (*Macrocystis pyrifera*) by hand harvest or by mechanical harvest", or the "operation and maintenance of artificial structures inside the conservation area". In addition, the Santa Ynez Band of Chumas Indians are "exempt from the area and take regulations found in subsection 632(b)(98) and shall comply with all other existing regulations and statutes" (CDFW, 2012)
- 
-<hr>
-
-##### Arroyo Quemado 
-
-
-
-```{r}
-lob_year_site %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site ,color="grey", aes(group=site)) +
-  geom_line(data = lob_year_site  %>% filter(site2 == "AQUE"), color="#CC60A8",size=1.2) +
-  theme_minimal()+
-    labs(title = "Arroyo Quemado Lobster Abundance",
-    subtitle = "2012-2018",
-    caption = "",
-    x = "Year",
-    y = "Count",
-    col = "") + 
-    theme_minimal() +  
-    # This centers our title and subtitle  
-    theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5),
-          legend.position = "none")
+          legend.position = "none",
+          plot.caption = element_text(hjust =0.5))
 
 ```
 
-**MPA Designation: ** Not a designated MPA site.
-
-<hr>
-
-##### Carpinteria
-
-
-
-```{r}
- lob_year_site %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site ,color="grey", aes(group=site)) +
-  geom_line(data = lob_year_site %>% filter(site2 == "CARP"),color="#CC60A8",size=1.2) +
-  labs(title = "Carpinteria Lobster Abundance",
-    subtitle = "2012-2018",
-    caption = "",
-    x = "Year",
-    y = "Count",
-    col = "") + 
-    theme_minimal() +  
-    # This centers our title and subtitle  
-    theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5),
-          legend.position = "none")
-```
-
-**MPA Designation**: Not a designated MPA site.
-
-<hr>
-
-##### Mohawk
-
-```{r}
-lob_year_site %>% 
-  ggplot(aes(x = year, y = count)) +
-  geom_line(data = lob_year_site ,color="grey", aes(group=site)) +
-  geom_line(data = lob_year_site  %>% filter(site2 == "MOHK"),color="#CC60A8",size=1.2) +
-  labs(title = "Mohawk Lobster Abundance",
-    subtitle = "2012-2018",
-    caption = "",
-    x = "Year",
-    y = "Count",
-    col = "") + 
-    theme_minimal() +  
-    # This centers our title and subtitle  
-    theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5),
-          legend.position = "none")
-```
-
-**MPA Designation**: Not a designated MPA site.
+**Figure 1.3**: Arroyo Quemado is not a designated MPA site. This site has the lowest change in lobster abundance from 2012 to 2018 (`r diff_AQUE["2018","2012"]`)
 
 <hr>
 
@@ -221,10 +275,15 @@ Comparing lobster sizes at catch sites for 2012 and 2018 shows Marine Protected 
 
 
 
-```{r}
+```{r, fig.align="center", fig.cap="**Figure 2**: Relative distribution of sizes are for each site for 2012 and 2018. The minimum catch size of 82.55mm (Lobster, Spiny. Minimum Size and Verification 2017) is included as a reference point. MPA sites demonstrate a shift from peak distribution far below this reference point to just above, whereas the non-MPA sites show less distributional shift."}
+
+# Create a data frame with only 2018 and 2012 data, and all of the 
+# null size values removed.
+
 lob_size_2018 <- lob_raw %>% 
   filter(!is.na(size_mm)) %>% 
   filter(year==2018) 
+
 lob_size_2012 <- lob_raw %>%    
   filter(!is.na(size_mm)) %>% 
   filter(year==2012)
@@ -233,35 +292,36 @@ lob_size_2012 <- lob_raw %>%
 # If you do it causes that to be applied to all following plots. 
 # In this instance since we are using multiple data frames  we 
 # need to map the aes per data frame.
-min_size <- data.frame(size_mm=109.55, site_name = 0.7,lab = str_wrap("Minimum Catch Size",width = 10), cfgn_code = factor("MPA Site",levels = c("MPA Site","Non-MPA Site")))
+
+# Create the overlayed violin plot showing the distribution of sizes
+
 ggplot() + 
-  geom_violin(data = lob_size_2012, 
-            aes (x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
-  geom_violin(data = lob_size_2018, 
-            aes (x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
-   geom_hline(yintercept = 82.55) +
-  #geom_hline(yintercept = 60, linetype="dashed") +
-  facet_grid(~cfgn_code, scales = "free", space = "free")+
-  labs(title = "Comparison of Lobster size in 2012 vs 2018",
-       x = "Catch site",
-       y = "") +
-    scale_y_continuous(breaks = c(60,82.55),labels = c("60mm",str_wrap("Miniumum Catch Size (82.55mm)",width = 10)))+
-  guides(fill=guide_legend(title="Year"))+
+  geom_violin(data = lob_size_2012, aes(x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
+  geom_violin(data = lob_size_2018, aes(x = site_name, y = size_mm, fill = as.factor(year)), alpha = .5) +
   
+  # Line with the minimum catch size and other peak comparison tick. Used 
+  # as a benchmark for comparison between MPA and non-MPA sites
+  geom_hline(yintercept = 82.55) +
+  scale_y_continuous(breaks = c(60,82.55),
+                     labels = c("60mm",str_wrap("Miniumum Catch Size (82.55mm)",width = 10)))+
+  
+  # Facet the plots so they are split by MPA designation. Additionally, 
+  # scales = "free" is used to prevent blank catch site on each facet. 
+  facet_grid(~cfgn_code, scales = "free")+
+  
+  # Labeling and other general aesthetics
+  labs(title = "Comparison of Lobster size Distribution in 2012 vs 2018",
+       x = "",
+       y = "") +
+  guides(fill=guide_legend(title="Year"))+
   theme(plot.title = element_text(hjust= 0.5),
-          plot.subtitle = element_text(hjust= 0.5),
+        plot.subtitle = element_text(hjust= 0.5),
         panel.grid.major.x = element_line(linetype = "blank"),
         panel.grid.major.y = element_line(linetype = "blank"),
         panel.grid.minor.y = element_line(linetype = "blank"),
         strip.background = element_rect(fill = "grey80"),
-        
         strip.text = element_text(face="bold"))
-  
-  #####################  Change legend to show 2018 is grey, and 2012 is solid##############
-
-
 ```
-
 
 #### Results C: Compare mean lobster sizes at MPA vs. non-MPA status sites in 2012 and 2018
 
@@ -316,10 +376,14 @@ mpa_2012_vs_mpa_2018 <- t.test(
 non_mpa_2012_vs_non_mpa_2018 <- t.test(
   non_mpa_size_2012$size_mm, non_mpa_size_2018$size_mm)
 
+# Combine all test statistics into one dataframe for easy referencing. Also, add to this
+# dataframe a percent difference and a total difference for the t-test mean sizes
+
 t_table <- map_df(list(mpa_vs_non_2012, mpa_vs_non_2018, mpa_2012_vs_mpa_2018, non_mpa_2012_vs_non_mpa_2018),tidy) %>% 
-  mutate(percent_difference = abs(estimate1-estimate2)/((estimate1+estimate2)/2)) %>% 
+  mutate(percent_difference = percent(abs(estimate1-estimate2)/((estimate1+estimate2)/2))) %>% 
   mutate(total_difference = abs(estimate1-estimate2)) 
 
+# Rename the colums of the dataframe with appropriate titles.
 names(t_table) <-  c("estimate",
           "mean_1",
           "mean_2", 
@@ -333,16 +397,13 @@ names(t_table) <-  c("estimate",
           "percent_difference",
           "total_difference")
 
-#kable(t_table,
-      #caption = "Table 1: Welch Two Sample t-test")
-
 
 ```
 
 ```{r}
 ### Create summary table with mean, standard deviation, and sample count
 
-final_summary_table_MPA <- lob_raw %>% 
+final_summary_table <- lob_raw %>% 
   filter(year %in% c(2012, 2018)) %>% 
   group_by(cfgn_code,year) %>% 
   summarize(
@@ -350,7 +411,7 @@ final_summary_table_MPA <- lob_raw %>%
     s_dev = round(sd(size_mm),1),
     count = n())
 
-kable(final_summary_table_MPA, 
+kable(final_summary_table, 
         caption = "Table 1: Lobster summary statistics MPA comparisons",
         col.names = c("MPA Desgination",
                       "Year",
@@ -360,18 +421,23 @@ kable(final_summary_table_MPA,
   kable_styling("striped",full_width = F) 
 ```
 
-1.	There is a significant difference in lobster size between 2012 Marine Protected Areas and non-Marine Protected Areas { in line reference values}.
-2.	There is a significant difference in lobster size between 2018 Marine Protected Areas and non-Marine Protected Areas {inline reference values}
-3.	There is a significant difference between 2012 and 2018 Marine Protected Area sites {inline reference values}.
-4.	There is not a significant difference between 2012 and 2018 non-Marine Protected Area sites {inline reference values}
+##### Comparison of MPA vs Non-MPA sites in 2012 and 2018
 
-Mean lobster size increased 10.2mm in Marine Protected Areas and decreased 1.3mm in non-protected areas from 2012-2018.  These were statistically significant {inline reference values} and support that Marine Protected Areas reduce potential fishing pressure resulting in higher populations and larger sizes of lobsters.  The population increase in Marine Protected Areas of 1,212 lobsters in comparison to 362 of non-protected areas further supports this finding.
+The percent difference between the 2012 MPA and Non-MPA lobster size means is `r t_table$percent_difference[1]`, with the non-MPA sites having a larger mean size (`r round(t_table$mean_2[1], digits=1)`mm ±`r final_summary_table$s_dev[3]` compared to `r round(t_table$mean_1[1],digits=1)`mm ±`r final_summary_table$s_dev[1]`). This difference is statistically significant (two-sample t-test, t(`r round(t_table$degrees_freedom[1], 2)`) = `r round(t_table$t_value[1],2)`, p value = `r round(t_table$p_value[1], 4)`), therefore, this finding provides support for the decision to designate these sites with MPA status.
+
+Comparing the sites in 2018, there is a statistically significant difference in lobster size between the MPA and non-MPA sites (two-sample t-test, t(`r round(t_table$degrees_freedom[2], 2)`) = `r round(t_table$t_value[2],2)`, p value = `r formatC(t_table$p_value[2], format = "e", digits = 2)`). The percent difference between these means is `r t_table$percent_difference[2]`, with the MPA sites having a larger mean size (`r round(t_table$mean_1[2], digits=1)`mm ±`r final_summary_table$s_dev[2]` compared to `r round(t_table$mean_2[2],digits=1)`mm ±`r final_summary_table$s_dev[4]`). This difference provides evidence that the high MPA status was effective at increasing the size of lobsters in these areas relative to non-MPA sites. This is compounded considering the size difference found between these site types in 2012.
+
+##### Comparison of 2012 Abundance vs 2018 Abundance in MPA and non-MPA sites
+
+There is a statistically significant difference between 2012 and 2018 MPA sites ( two-sample t-test, t(`r round(t_table$degrees_freedom[3], 2)`) = `r round(t_table$t_value[3],2)`, p value = `r formatC(t_table$p_value[3], format = "e", digits = 2)`). This was seen as a `r t_table$percent_difference[3]` increase in mean size from 2012 to 2018 (`r round(t_table$mean_1[3], digits=1)`mm ±`r final_summary_table$s_dev[1]` compared to `r round(t_table$mean_2[3],digits=1)`mm ±`r final_summary_table$s_dev[2]`). This difference provides evidence that the MPA status was effective at increasing the size of lobsters over time.
+
+At the non-MPA sites the mean size decreased, but the difference was statistically insignificant ( two-sample t-test, t(`r round(t_table$degrees_freedom[4], 2)`) = `r round(t_table$t_value[4],2)`, p value = `r round(t_table$p_value[4], 4)`). It is likely that the overall size had not changed from 2012 to 2018, which provides further evidence that the MPA status was responsible for the increase seen at MPA sites.
 
 ### Summary
 
-* Marine Protected Area lobster populations increased 9 of 12 years collectively resulting in an overall population growth between the two sites of {calculate value}. In comparison, non-protected areas increased 8 of 18 years collectively with a total population increase of {calculate value}
-* Bullet from Violins
-* After being designated Marine Protection Areas, the Isla Vista and Naples sites increased their mean lobster size 10.2mm while non-protected sites decreased mean size 1.3mm.
+* Marine Protected Area lobster abundance generally increased over time more than non-MPA sites (Figure 1.1 - 1.5).
+* The distribution of lobster size shifted up at MPA sites and remained relatively unchanged at non-MPA sites (Figure 2).
+* Lobster mean size was significantly increased over time in areas which were designated as Marine Protected Areas.
 
 ### References
 
@@ -381,7 +447,7 @@ Mean lobster size increased 10.2mm in Marine Protected Areas and decreased 1.3mm
 
 **Parnell, P. E., Lennert-Cody, C., Geelen, L., Stanley, L. D., & Dayton, P. K. (2005).** *Effectiveness of a small marine reserve in southern california. Marine Ecology Progress Series*, 296, 39-52. Retrieved from https://search-proquest-com.proxy.library.ucsb.edu:9443/docview/17649312?accountid=14522 
 
-**Phillips, & Phillips, Bruce F. (2013).** *Lobsters : Biology, management, aquaculture and fisheries (2nd ed.)*. Chichester, West Sussex, UK: Wiley-Blackwell.
+**Phillips, Bruce F. (2013).** *Lobsters : Biology, management, aquaculture and fisheries (2nd ed.)*. Chichester, West Sussex, UK: Wiley-Blackwell.
 
 **Reed D. (2019).** *SBC LTER: Reef: Abundance, size and fishing effort for California Spiny Lobster (Panulirus interruptus), ongoing since 2012.* Environmental Data Initiative. https://doi.org/10.6073/pasta/a593a675d644fdefb736750b291579a0. Dataset accessed 10/30/2019.
 
